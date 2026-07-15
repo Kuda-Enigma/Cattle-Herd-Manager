@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herd Manager — Cattle Management System</title>
+<style>
+  :root{
+    --bg:#0f1512; --panel:#16201b; --panel2:#1c2a23; --line:#2a3a30;
+    --txt:#e8f0ea; --muted:#94a99c; --accent:#57b368;
+    --accent2:#3f9d70; --warn:#e0a63d; --danger:#e05d4b; --chip:#233029;
+    --shadow:0 4px 20px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);-webkit-font-smoothing:antialiased}
+  header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,#16201b,#131b16);border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+  .logo .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;font-size:18px}
+  .spacer{flex:1}
+  nav{display:flex;gap:4px;flex-wrap:wrap}
+  nav button{background:transparent;color:var(--muted);border:0;padding:9px 14px;border-radius:9px;cursor:pointer;font-size:14px;font-weight:600;transition:.15s}
+  nav button:hover{background:var(--chip);color:var(--txt)}
+  nav button.active{background:var(--accent);color:#08120c}
+  .toolbtn{background:var(--chip);color:var(--txt);border:1px solid var(--line);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:600}
+  .toolbtn:hover{border-color:var(--accent)}
+  main{padding:22px;max-width:1200px;margin:0 auto}
+  h2.page{font-size:22px;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:20px}
+  .grid{display:grid;gap:16px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .stat .label{color:var(--muted);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .stat .value{font-size:32px;font-weight:800;margin-top:6px}
+  .stat .foot{color:var(--muted);font-size:12px;margin-top:4px}
+  .stat .value.green{color:var(--accent)} .stat .value.warn{color:var(--warn)} .stat .value.red{color:var(--danger)}
+  .row2{grid-template-columns:1fr 1fr}
+  @media(max-width:820px){.row2{grid-template-columns:1fr}}
+  .card h3{font-size:15px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  canvas{max-width:100%}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.4px;font-weight:700;white-space:nowrap}
+  tbody tr:hover{background:var(--panel2)}
+  td .act{display:flex;gap:6px}
+  .icon-btn{background:var(--chip);border:1px solid var(--line);color:var(--txt);border-radius:7px;padding:4px 8px;cursor:pointer;font-size:12px}
+  .icon-btn:hover{border-color:var(--accent)} .icon-btn.del:hover{border-color:var(--danger);color:var(--danger)}
+  .tablewrap{overflow-x:auto}
+  .bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap}
+  .search{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 12px;font-size:14px;min-width:200px}
+  .primary{background:var(--accent);color:#08120c;border:0;padding:10px 16px;border-radius:9px;font-weight:700;cursor:pointer;font-size:14px}
+  .primary:hover{filter:brightness(1.08)}
+  .empty{text-align:center;color:var(--muted);padding:40px 10px}
+  .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:12px;font-weight:700}
+  .badge.m{background:#1e3a5f;color:#9cc9ff} .badge.f{background:#4a2340;color:#ffa9e0}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;place-items:center;z-index:100;padding:20px}
+  .overlay.on{display:grid}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;box-shadow:var(--shadow)}
+  .modal-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .modal-head h3{font-size:17px} .modal-body{padding:20px;display:grid;gap:14px}
+  .field label{display:block;color:var(--muted);font-size:13px;font-weight:600;margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:10px 12px;font-size:14px;font-family:inherit}
+  .field textarea{resize:vertical;min-height:60px}
+  .modal-foot{padding:16px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--txt);padding:10px 16px;border-radius:9px;cursor:pointer;font-weight:600}
+  .close{background:transparent;border:0;color:var(--muted);font-size:22px;cursor:pointer;line-height:1}
+  .calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.calc-grid{grid-template-columns:1fr}}
+  .calc-out{background:var(--panel2);border-radius:12px;padding:18px}
+  .calc-out .line{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .calc-out .line:last-child{border-bottom:0}
+  .calc-out .line .v{font-weight:800;color:var(--accent)}
+  .calc-out .big{font-size:20px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--accent);color:#08120c;padding:12px 22px;border-radius:10px;font-weight:700;box-shadow:var(--shadow);transition:.3s;z-index:200;opacity:0}
+  .toast.on{transform:translateX(-50%) translateY(0);opacity:1}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:30px}
+  .hint{color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="mark">🐄</span> Herd Manager</div>
+  <nav id="nav"></nav>
+  <div class="spacer"></div>
+  <button class="toolbtn" onclick="exportAll()">⬇ Backup (CSV)</button>
+  <button class="toolbtn" onclick="document.getElementById('importFile').click()">⬆ Restore</button>
+  <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importAll(event)">
+</header>
+
+<main id="app"></main>
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+<footer>Herd Manager · data is saved in this browser only · export a CSV backup regularly</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+/* ---------- schema ---------- */
+const SHEETS = {
+  herd:      {name:'Herd Register',       icon:'🐄', fields:[
+    {k:'tag',label:'Tag Number',req:true},{k:'breed',label:'Breed'},
+    {k:'sex',label:'Sex',type:'select',opts:['','Male','Female']},
+    {k:'dob',label:'Date of Birth',type:'date'},
+    {k:'birthWt',label:'Birth Weight (kg)',type:'number'},
+    {k:'weanWt',label:'Weaned Weight (kg)',type:'number'},
+    {k:'health',label:'Health Notes',type:'textarea'},
+    {k:'sire',label:'Sire'},{k:'dam',label:'Dam'}]},
+  dipping:   {name:'Dipping Records',      icon:'🧪', fields:[
+    {k:'date',label:'Date',type:'date',req:true},{k:'chemical',label:'Chemical Used'},
+    {k:'active',label:'Active Ingredient'},{k:'dilution',label:'Dilution (ml/L)',type:'number'},
+    {k:'tickLoad',label:'Tick Load',type:'select',opts:['','Low','Medium','High']},
+    {k:'remarks',label:'Remarks',type:'textarea'}]},
+  vaccination:{name:'Vaccination Records', icon:'💉', fields:[
+    {k:'date',label:'Date',type:'date',req:true},{k:'vaccine',label:'Vaccine'},
+    {k:'tag',label:'Animal Tag'},{k:'batch',label:'Batch Number'},
+    {k:'by',label:'Administered By'},{k:'notes',label:'Notes',type:'textarea'}]},
+  treatments:{name:'Treatments',           icon:'🩺', fields:[
+    {k:'date',label:'Date',type:'date',req:true},{k:'tag',label:'Animal Tag'},
+    {k:'med',label:'Medication'},{k:'dose',label:'Dose'},
+    {k:'symptoms',label:'Symptoms (Reason)'},{k:'notes',label:'Notes',type:'textarea'}]},
+  mortalities:{name:'Mortalities',         icon:'⚠️', fields:[
+    {k:'date',label:'Date',type:'date',req:true},{k:'tag',label:'Animal Tag'},
+    {k:'cause',label:'Cause'},{k:'vet',label:'Vet Report'},
+    {k:'notes',label:'Notes',type:'textarea'}]},
+};
+const CALC_KEY='hm_calc', DB_KEY='hm_db';
+
+/* ---------- storage ---------- */
+function loadDB(){ try{return JSON.parse(localStorage.getItem(DB_KEY))||{}}catch(e){return {}} }
+function saveDB(db){ localStorage.setItem(DB_KEY,JSON.stringify(db)); }
+function getRows(s){ const db=loadDB(); return db[s]||[]; }
+function setRows(s,rows){ const db=loadDB(); db[s]=rows; saveDB(db); }
+let DB = loadDB();
+Object.keys(SHEETS).forEach(s=>{ if(!DB[s]) DB[s]=[]; });
+saveDB(DB);
+
+/* ---------- routing ---------- */
+let current='dashboard';
+const TABS=[['dashboard','Dashboard','📊'],...Object.entries(SHEETS).map(([k,v])=>[k,v.name,v.icon]),['calculator','Calculator','🧮']];
+function renderNav(){
+  document.getElementById('nav').innerHTML=TABS.map(([id,label,ic])=>
+    `<button class="${id===current?'active':''}" onclick="go('${id}')">${ic} ${label}</button>`).join('');
+}
+function go(id){ current=id; renderNav(); route(); window.scrollTo(0,0); }
+function route(){
+  if(current==='dashboard') return renderDashboard();
+  if(current==='calculator') return renderCalculator();
+  return renderSheet(current);
+}
+
+/* ---------- dashboard ---------- */
+let charts=[];
+function destroyCharts(){ charts.forEach(c=>c.destroy()); charts=[]; }
+function renderDashboard(){
+  destroyCharts();
+  const herd=getRows('herd'), dead=getRows('mortalities');
+  const deadTags=new Set(dead.map(d=>(d.tag||'').trim()).filter(Boolean));
+  const alive=herd.filter(a=>!deadTags.has((a.tag||'').trim()));
+  const males=alive.filter(a=>a.sex==='Male').length;
+  const females=alive.filter(a=>a.sex==='Female').length;
+  const now=new Date(); const y30=new Date(now-30*864e5);
+  const recentTreat=getRows('treatments').filter(t=>t.date&&new Date(t.date)>=y30).length;
+  const recentVac=getRows('vaccination').filter(t=>t.date&&new Date(t.date)>=y30).length;
+  const lastDip=getRows('dipping').map(d=>d.date).filter(Boolean).sort().pop();
+  const breeds={}; alive.forEach(a=>{const b=(a.breed||'Unknown').trim()||'Unknown'; breeds[b]=(breeds[b]||0)+1;});
+
+  document.getElementById('app').innerHTML=`
+    <h2 class="page">Herd Dashboard</h2>
+    <div class="sub">Live overview of your cattle operation</div>
+    <div class="grid stats">
+      ${stat('Live Herd Size',alive.length,'green',herd.length+' total registered')}
+      ${stat('Males / Females',males+' / '+females,'',alive.length?Math.round(females/(alive.length||1)*100)+'% female':'—')}
+      ${stat('Mortalities',dead.length,dead.length?'red':'','recorded to date')}
+      ${stat('Treatments (30d)',recentTreat,recentTreat?'warn':'','last 30 days')}
+      ${stat('Vaccinations (30d)',recentVac,'green','last 30 days')}
+      ${stat('Last Dip',lastDip?fmtDate(lastDip):'—','',lastDip?daysAgo(lastDip)+' days ago':'no records')}
+    </div>
+    <div class="grid row2" style="margin-top:16px">
+      <div class="card"><h3>🧬 Herd by Breed</h3><canvas id="breedChart" height="220"></canvas></div>
+      <div class="card"><h3>📈 Health Events (last 6 months)</h3><canvas id="eventsChart" height="220"></canvas></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>🕒 Recent Activity</h3>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Type</th><th>Detail</th></tr></thead>
+      <tbody>${recentActivity()}</tbody></table></div>
+    </div>`;
+
+  const bl=Object.keys(breeds), bv=Object.values(breeds);
+  if(bl.length) charts.push(new Chart(document.getElementById('breedChart'),{type:'doughnut',
+    data:{labels:bl,datasets:[{data:bv,backgroundColor:['#57b368','#3f9d70','#e0a63d','#5a9bd4','#b06fd0','#e05d4b','#48b0a0','#c9a24b']}]},
+    options:{plugins:{legend:{labels:{color:'#e8f0ea'}}}}}));
+  charts.push(new Chart(document.getElementById('eventsChart'),{type:'bar',
+    data:eventsData(),options:{plugins:{legend:{labels:{color:'#e8f0ea'}}},
+    scales:{x:{ticks:{color:'#94a99c'},grid:{color:'#2a3a30'}},y:{ticks:{color:'#94a99c'},grid:{color:'#2a3a30'},beginAtZero:true}}}}));
+}
+function stat(label,value,cls,foot){return `<div class="card stat"><div class="label">${label}</div><div class="value ${cls||''}">${value}</div><div class="foot">${foot||''}</div></div>`;}
+function eventsData(){
+  const months=[],labels=[]; const d=new Date();d.setDate(1);
+  for(let i=5;i>=0;i--){const m=new Date(d.getFullYear(),d.getMonth()-i,1);months.push(m);labels.push(m.toLocaleString('en',{month:'short'}));}
+  const count=(sheet)=>months.map(m=>getRows(sheet).filter(r=>{if(!r.date)return false;const rd=new Date(r.date);return rd.getFullYear()===m.getFullYear()&&rd.getMonth()===m.getMonth();}).length);
+  return {labels,datasets:[
+    {label:'Dipping',data:count('dipping'),backgroundColor:'#57b368'},
+    {label:'Vaccination',data:count('vaccination'),backgroundColor:'#5a9bd4'},
+    {label:'Treatments',data:count('treatments'),backgroundColor:'#e0a63d'}]};
+}
+function recentActivity(){
+  let all=[];
+  const push=(sheet,type,fmt)=>getRows(sheet).forEach(r=>{if(r.date)all.push({date:r.date,type,detail:fmt(r)});});
+  push('dipping','🧪 Dip',r=>r.chemical||'Dipping'+(r.tickLoad?' · tick '+r.tickLoad:''));
+  push('vaccination','💉 Vaccine',r=>(r.vaccine||'Vaccine')+(r.tag?' · '+r.tag:''));
+  push('treatments','🩺 Treatment',r=>(r.med||'Treatment')+(r.tag?' · '+r.tag:''));
+  push('mortalities','⚠️ Mortality',r=>(r.tag?r.tag+' · ':'')+(r.cause||'—'));
+  all.sort((a,b)=>b.date.localeCompare(a.date));
+  all=all.slice(0,8);
+  if(!all.length) return `<tr><td colspan="3" class="empty">No activity yet. Add records to see them here.</td></tr>`;
+  return all.map(a=>`<tr><td>${fmtDate(a.date)}</td><td>${a.type}</td><td>${esc(a.detail)}</td></tr>`).join('');
+}
+
+/* ---------- sheet CRUD ---------- */
+let filterText='';
+function renderSheet(s){
+  destroyCharts();
+  const def=SHEETS[s]; let rows=getRows(s);
+  const ft=filterText.toLowerCase();
+  let view=rows.map((r,i)=>({r,i})).filter(({r})=>!ft||Object.values(r).some(v=>String(v||'').toLowerCase().includes(ft)));
+  view.sort((a,b)=>{const da=a.r.date||a.r.dob||'',db=b.r.date||b.r.dob||'';return db.localeCompare(da);});
+  document.getElementById('app').innerHTML=`
+    <h2 class="page">${def.icon} ${def.name}</h2>
+    <div class="sub">${rows.length} record${rows.length!==1?'s':''}</div>
+    <div class="bar">
+      <input class="search" placeholder="Search…" value="${esc(filterText)}" oninput="filterText=this.value;renderSheet('${s}')">
+      <button class="primary" onclick="openForm('${s}')">+ Add record</button>
+    </div>
+    <div class="card"><div class="tablewrap"><table>
+      <thead><tr>${def.fields.map(f=>`<th>${f.label}</th>`).join('')}<th></th></tr></thead>
+      <tbody>${view.length?view.map(({r,i})=>rowHtml(s,r,i)).join(''):`<tr><td colspan="${def.fields.length+1}" class="empty">No records${ft?' match your search':''}. Click “Add record”.</td></tr>`}</tbody>
+    </table></div></div>`;
+}
+function rowHtml(s,r,i){
+  const def=SHEETS[s];
+  return `<tr>${def.fields.map(f=>{
+    let v=r[f.k];
+    if(f.k==='sex'&&v)return `<td><span class="badge ${v==='Male'?'m':'f'}">${v}</span></td>`;
+    if((f.type==='date')&&v)v=fmtDate(v);
+    return `<td>${esc(v||'—')}</td>`;
+  }).join('')}<td><div class="act">
+    <button class="icon-btn" onclick="openForm('${s}',${i})">Edit</button>
+    <button class="icon-btn del" onclick="delRow('${s}',${i})">✕</button>
+  </div></td></tr>`;
+}
+function delRow(s,i){ if(!confirm('Delete this record?'))return; const rows=getRows(s);rows.splice(i,1);setRows(s,rows);toast('Deleted');renderSheet(s); }
+
+/* ---------- form modal ---------- */
+function openForm(s,i){
+  const def=SHEETS[s]; const editing=(i!==undefined); const rec=editing?getRows(s)[i]:{};
+  document.getElementById('modal').innerHTML=`
+    <div class="modal-head"><h3>${editing?'Edit':'Add'} — ${def.name}</h3><button class="close" onclick="closeModal()">×</button></div>
+    <div class="modal-body">${def.fields.map(f=>fieldHtml(f,rec)).join('')}</div>
+    <div class="modal-foot"><button class="ghost" onclick="closeModal()">Cancel</button>
+    <button class="primary" onclick="saveForm('${s}',${editing?i:-1})">${editing?'Save changes':'Add record'}</button></div>`;
+  document.getElementById('overlay').classList.add('on');
+}
+function fieldHtml(f,rec){
+  const v=rec[f.k]!=null?rec[f.k]:'';
+  let inner;
+  if(f.type==='select')inner=`<select id="fld_${f.k}">${f.opts.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('')}</select>`;
+  else if(f.type==='textarea')inner=`<textarea id="fld_${f.k}">${esc(v)}</textarea>`;
+  else inner=`<input id="fld_${f.k}" type="${f.type||'text'}" value="${esc(v)}" ${f.type==='number'?'step="any"':''}>`;
+  return `<div class="field"><label>${f.label}${f.req?' *':''}</label>${inner}</div>`;
+}
+function saveForm(s,idx){
+  const def=SHEETS[s]; const rec={};
+  for(const f of def.fields){ const el=document.getElementById('fld_'+f.k); rec[f.k]=el.value.trim(); }
+  const reqF=def.fields.find(f=>f.req);
+  if(reqF && !rec[reqF.k]){ alert(reqF.label+' is required.'); return; }
+  const rows=getRows(s);
+  if(idx>=0)rows[idx]=rec; else rows.push(rec);
+  setRows(s,rows); closeModal(); toast(idx>=0?'Saved':'Record added'); renderSheet(s);
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('on'); }
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+
+/* ---------- calculator ---------- */
+function renderCalculator(){
+  destroyCharts();
+  const c=Object.assign({cattle:47,vol:10,dilution:1,dips:30},JSON.parse(localStorage.getItem(CALC_KEY)||'{}'));
+  document.getElementById('app').innerHTML=`
+    <h2 class="page">🧮 Cattle Spray Chemical Calculator</h2>
+    <div class="sub">Work out how much dip chemical you need per spray and per year</div>
+    <div class="card"><div class="calc-grid">
+      <div>
+        ${cf('cattle','Number of cattle',c.cattle)}
+        ${cf('vol','Spray volume per animal (Litres)',c.vol)}
+        ${cf('dilution','Dilution rate (ml chemical per L water)',c.dilution)}
+        ${cf('dips','Estimated dips per year',c.dips)}
+        <p class="hint" style="margin-top:8px">Values save automatically in this browser.</p>
+      </div>
+      <div class="calc-out" id="calcOut"></div>
+    </div></div>`;
+  ['cattle','vol','dilution','dips'].forEach(k=>document.getElementById('c_'+k).addEventListener('input',calc));
+  calc();
+}
+function cf(k,label,v){return `<div class="field"><label>${label}</label><input id="c_${k}" type="number" step="any" value="${v}"></div>`;}
+function calc(){
+  const g=k=>parseFloat(document.getElementById('c_'+k).value)||0;
+  const cattle=g('cattle'),vol=g('vol'),dil=g('dilution'),dips=g('dips');
+  localStorage.setItem(CALC_KEY,JSON.stringify({cattle,vol,dilution:dil,dips}));
+  const totalSol=cattle*vol;
+  const chemPer=totalSol*dil;
+  const chemYear=chemPer*dips;
+  document.getElementById('calcOut').innerHTML=`
+    <div class="line"><span>Total spray solution needed</span><span class="v">${fmt(totalSol)} L</span></div>
+    <div class="line"><span>Chemical required per dipping</span><span class="v">${fmt(chemPer)} ml</span></div>
+    <div class="line big"><span>Chemical per dipping</span><span class="v">${fmt(chemPer/1000)} L</span></div>
+    <div class="line"><span>Total chemical per year</span><span class="v">${fmt(chemYear)} ml</span></div>
+    <div class="line big"><span>Total chemical per year</span><span class="v">${fmt(chemYear/1000)} L</span></div>`;
+}
+
+/* ---------- CSV backup/restore ---------- */
+function exportAll(){
+  let out=[];
+  for(const [s,def] of Object.entries(SHEETS)){
+    out.push('# SHEET:'+s);
+    const keys=def.fields.map(f=>f.k);
+    out.push(keys.map(csvCell).join(','));
+    getRows(s).forEach(r=>out.push(keys.map(k=>csvCell(r[k]||'')).join(',')));
+    out.push('');
+  }
+  out.push('# SHEET:calculator');
+  const c=JSON.parse(localStorage.getItem(CALC_KEY)||'{}');
+  out.push('cattle,vol,dilution,dips');
+  out.push([c.cattle||'',c.vol||'',c.dilution||'',c.dips||''].map(csvCell).join(','));
+  const blob=new Blob([out.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='herd-manager-backup-'+new Date().toISOString().slice(0,10)+'.csv';a.click();
+  toast('Backup downloaded');
+}
+function importAll(e){
+  const file=e.target.files[0]; if(!file)return;
+  if(!confirm('Restore will REPLACE all current data with the backup file. Continue?')){e.target.value='';return;}
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const lines=rd.result.split(/\r?\n/); let s=null,keys=null; const db={};Object.keys(SHEETS).forEach(k=>db[k]=[]);
+      let calc=null,calcKeys=null;
+      for(const line of lines){
+        if(line.startsWith('# SHEET:')){s=line.slice(8).trim();keys=null;if(s==='calculator')calc=[];continue;}
+        if(s===null||line==='')continue;
+        const cells=parseCsvLine(line);
+        if(!keys){keys=cells;if(s==='calculator')calcKeys=cells;continue;}
+        if(s==='calculator'){const o={};calcKeys.forEach((k,i)=>o[k]=cells[i]);localStorage.setItem(CALC_KEY,JSON.stringify({cattle:+o.cattle||0,vol:+o.vol||0,dilution:+o.dilution||0,dips:+o.dips||0}));continue;}
+        if(!SHEETS[s])continue;
+        const rec={};keys.forEach((k,i)=>rec[k]=cells[i]||'');db[s].push(rec);
+      }
+      saveDB(db);DB=db;toast('Data restored');go('dashboard');
+    }catch(err){alert('Could not read that file. Make sure it is a Herd Manager backup CSV.');}
+    e.target.value='';
+  };
+  rd.readAsText(file);
+}
+function csvCell(v){v=String(v==null?'':v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function parseCsvLine(line){const out=[];let cur='',q=false;for(let i=0;i<line.length;i++){const ch=line[i];if(q){if(ch==='"'){if(line[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=ch;}else{if(ch==='"')q=true;else if(ch===',')  {out.push(cur);cur='';}else cur+=ch;}}out.push(cur);return out;}
+
+/* ---------- helpers ---------- */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmt(n){return (Math.round(n*100)/100).toLocaleString('en');}
+function fmtDate(d){const x=new Date(d);return isNaN(x)?d:x.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+function daysAgo(d){return Math.max(0,Math.round((Date.now()-new Date(d))/864e5));}
+let tId;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(tId);tId=setTimeout(()=>t.classList.remove('on'),2000);}
+
+/* ---------- init ---------- */
+renderNav();route();
+</script>
+</body>
+</html>
